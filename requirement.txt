@@ -1,0 +1,18 @@
+os
+time
+random
+numpy==1.13.1
+math
+matplotlib
+logging
+_pickle
+
+
+
+position update
+43
+exit
+more bs
+what is rb and no of rb
+velocity discussion[40 60 80 ]
+enable play

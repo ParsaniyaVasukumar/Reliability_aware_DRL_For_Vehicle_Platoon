@@ -1,0 +1,13 @@
+# Ignore __pycache__ folders
+__pycache__/
+
+# Ignore Visual Studio Code settings folder
+.vscode/
+
+# Ignore DRL folder
+drl-metal/
+
+# Ignore weight folder
+weight/
+
+.DRL for Vehicle Platoon Communications
