@@ -234,7 +234,7 @@ class Agent(BaseModel):
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('reward_vs_time_step_all80.png', dpi=300)
+        plt.savefig('reward_vs_time_step_all.png', dpi=300)
         plt.close()
         
         # After training, plot and save the graphs
@@ -501,15 +501,15 @@ class Agent(BaseModel):
             p_1 = number_1 / (number_0 + number_1 + number_2)
             p_2 = number_2 / (number_0 + number_1 + number_2)
             plt.figure()
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Power Level 23 db')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Power Level 10 db')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Power Level 5 db')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Power Level 45 db')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Power Level 30 db')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Power Level 10 db')
             # plt.xlim([0,0.12])
             plt.xlabel("Time left for V2V transmission (s)")
             plt.ylabel("Probability of power selection")
             plt.legend()
             plt.grid()
-            plt.savefig('deepqnetwork40(23,10,5).png', dpi=300)
+            plt.savefig('deepqnetwork(45,30,10).png', dpi=300)
             
             V2I_Rate_list[game_idx] = np.mean(np.asarray(Rate_list))
             Fail_percent_list[game_idx] = percent
@@ -564,7 +564,7 @@ class Agent(BaseModel):
         plt.legend(fontsize=12)  # Larger legend for better readability
         plt.grid(True, linestyle='--', alpha=0.7)  # Adding dashed gridlines with some transparency
         plt.tight_layout()  # Ensuring that the layout fits well in the figure
-        plt.savefig('power_vs_vehicle_count40(45,30,10).png', dpi=300)  # Save the plot
+        plt.savefig('power_vs_vehicle_count(45,30,10).png', dpi=300)  # Save the plot
 
     def initialize_action_arrays(self):
         self.action_all_with_power = np.zeros([self.num_vehicle, 3, 2], dtype='int32')
@@ -594,18 +594,18 @@ class Agent(BaseModel):
         plt.ylabel("Usage Count")
         plt.title("Resource Block Utilization")
         plt.grid()
-        plt.savefig("resource_block_utilization80.png", dpi=300)
+        plt.savefig("resource_block_utilization.png", dpi=300)
         print("Saved plot: resource_block_utilization.png")
 
     def plot_v2i_rate_distribution(self, V2I_Rate_list):
         plt.figure()
         plt.hist(V2I_Rate_list, bins=20, color='blue', alpha=0.7)
-        plt.xlabel("V2I Rate (Mbps)")
+        plt.xlabel("V2V Rate (Mbps)")
         plt.ylabel("Frequency")
-        plt.title("Distribution of V2I Rates")
+        plt.title("Distribution of V2V Rates")
         plt.grid()
-        plt.savefig("V2I_rate_distribution80.png", dpi=300)
-        print("Saved plot: V2I_rate_distribution.png")
+        plt.savefig("V2V_rate_distribution.png", dpi=300)
+        print("Saved plot: V2V_rate_distribution.png")
 
     def plot_failure_probability(self, Fail_percent_list):
         plt.figure()
@@ -615,7 +615,7 @@ class Agent(BaseModel):
         plt.ylim(0, 0.050)
         plt.title("Failure Probability Over Games")
         plt.grid()
-        plt.savefig("failure_probability_over_games80.png", dpi=300)
+        plt.savefig("failure_probability_over_games.png", dpi=300)
         print("Saved plot: failure_probability_over_games.png")
 
     def plot_interference_heatmap(self):
@@ -625,7 +625,7 @@ class Agent(BaseModel):
         plt.xlabel("Resource Blocks")
         plt.ylabel("Vehicles")
         plt.title("Interference Heatmap")
-        plt.savefig("interference_heatmap80.png", dpi=300)
+        plt.savefig("interference_heatmap.png", dpi=300)
         print("Saved plot: interference_heatmap.png")
 
 def main(_):
@@ -676,4 +676,6 @@ def main(_):
 if __name__ == '__main__':
     tf.app.run()
         
+
+
 
