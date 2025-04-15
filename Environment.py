@@ -53,6 +53,32 @@ class V2Vchannels:
                 
                 self.LinkReliability[i][j] = rlij
 
+    # def update_pathloss(self):
+    #     # Ensure PathLoss and LinkReliability matrices are initialized correctly
+    #     self.PathLoss = np.zeros((self.n_Veh, self.n_Veh))
+    #     self.LinkReliability = np.zeros((self.n_Veh, self.n_Veh))
+        
+    #     # Use the minimum length between positions and velocities to avoid index errors
+    #     num_vehicles = min(len(self.positions), len(self.velocities), self.n_Veh)
+
+    #     for i in range(num_vehicles):
+    #         for j in range(num_vehicles):
+    #             if i < len(self.positions) and j < len(self.positions):
+    #                 self.PathLoss[i][j] = self.get_path_loss(self.positions[i], self.positions[j])
+    #                 vij = abs(self.velocities[i] - self.velocities[j]) if i < len(self.velocities) and j < len(self.velocities) else 0
+    #                 dij = self.get_distance(self.positions[i], self.positions[j])
+                    
+    #                 if vij == 0:
+    #                     rlij = 0
+    #                 else:
+    #                     delta_t = (self.communication_range - dij) / vij
+    #                     sigma_vij = 10 * np.sqrt(2)
+    #                     mu_vij = 0.0
+    #                     t = 1
+    #                     rlij = self.calculate_reliability(dij, t, delta_t, sigma_vij, mu_vij)
+                    
+    #                 self.LinkReliability[i][j] = rlij
+
     def get_distance(self, position_A, position_B):
         return math.hypot(position_A[0] - position_B[0], position_A[1] - position_B[1])
     
@@ -135,6 +161,7 @@ class V2Ichannels:
             d2 = abs(self.positions[i][1] - used_BS[1])
             distance = math.hypot(d1,d2) # change from meters to kilometers
             self.PathLoss[i] = 128.1 + 37.6*np.log10(math.sqrt(distance**2 + (self.h_bs-self.h_ms)**2)/1000)
+
     def update_shadow(self, delta_distance_list):
         if len(delta_distance_list) == 0:  # initialization
             self.Shadow = np.random.normal(0, self.shadow_std, self.n_Veh)
@@ -142,6 +169,19 @@ class V2Ichannels:
             delta_distance = np.asarray(delta_distance_list)
             self.Shadow = np.exp(-1*(delta_distance/self.Decorrelation_distance))* self.Shadow +\
                           np.sqrt(1-np.exp(-2*(delta_distance/self.Decorrelation_distance)))*np.random.normal(0,self.shadow_std, self.n_Veh)
+
+    # def update_shadow(self, delta_distance_list):
+    #     if len(delta_distance_list) == 0:  # initialization
+    #         self.Shadow = np.random.normal(0, self.shadow_std, self.n_Veh)  # Ensure shape matches n_Veh
+    #     else: 
+    #         delta_distance = np.asarray(delta_distance_list)
+    #         # Adjust the size of Shadow to match the number of vehicles
+    #         if len(delta_distance) != self.n_Veh:
+    #             delta_distance = np.pad(delta_distance, (0, max(0, self.n_Veh - len(delta_distance))), 'constant')
+            
+    #         self.Shadow = np.exp(-1 * (delta_distance / self.Decorrelation_distance)) * self.Shadow + \
+    #                     np.sqrt(1 - np.exp(-2 * (delta_distance / self.Decorrelation_distance))) * np.random.normal(0, self.shadow_std, size=self.n_Veh)
+            
     def update_fast_fading(self):
         h = 1/np.sqrt(2) * (np.random.normal(size = (self.n_Veh, self.n_RB)) + 1j* np.random.normal(size = (self.n_Veh, self.n_RB)))
         self.FastFading = 20 * np.log10(np.abs(h))
@@ -168,9 +208,9 @@ class Environ:
         self.height = height
         self.vehicles = []
         self.demands = []  
-        self.V2V_power_dB = 45 # dBm
-        self.V2I_power_dB = 45 # dBm
-        self.V2V_power_dB_List = [45,30,10]             # the power levels
+        self.V2V_power_dB = 36 # dBm
+        self.V2I_power_dB = 36 # dBm
+        self.V2V_power_dB_List = [36 ,33, 23]             # the power levels
         #self.V2V_power = 10**(self.V2V_power_dB)
         #self.V2I_power = 10**(self.V2I_power_dB)
         self.sig2_dB = -114
@@ -195,6 +235,7 @@ class Environ:
         self.platoon_sizes = []
         self.activate_links = None  # This will be initialized later
         self.predicted_v2i_rates_over_time = []
+        self.previous_actions = set()  # Initialize the set to track previous actions
 
     def get_current_state(self):
         # Example: Create a state representation
@@ -650,13 +691,28 @@ class Environ:
         # Append the predicted V2I reward to the list
         self.predicted_v2i_rates_over_time.append(predicted_V2I_reward)  # Add this line
 
-        lambdda = 0.3
+        lambdda = 0.1
         #print ("Reward", V2I_reward, V2V_reward, time_left)
         t = lambdda * V2I_reward + (1-lambdda) * V2V_reward
         #print("time left", time_left)
         #return t
         return t - (self.V2V_limit - time_left)/self.V2V_limit, raw_V2I_reward, predicted_V2I_reward
         
+        # # Encourage diversity in resource block usage
+        # last_action = actions[idx[0], idx[1], 0] + 20 * actions[idx[0], idx[1], 1]
+        # if last_action in self.previous_actions:
+        #     diversity_penalty = -0.1  # Penalty for using the same action
+        # else:
+        #     diversity_penalty = 0.0
+
+        # self.previous_actions.add(last_action)  # Store the last action
+
+        # # Compute total reward with diversity penalty
+        # lambdda = 0.1  # Weight for combining rewards
+        # t = lambdda * V2I_reward + (1 - lambdda) * V2V_reward + diversity_penalty
+
+        # return t - (self.V2V_limit - time_left) / self.V2V_limit, raw_V2I_reward, predicted_V2I_reward
+    
     def act_asyn(self, actions):
         self.n_step += 1
         if self.n_step % 10 == 0:
@@ -683,6 +739,7 @@ class Environ:
         if n_Veh > 0:
             self.n_Veh = n_Veh
         self.add_new_vehicles_by_number(int(self.n_Veh/2))
+        self.V2Vchannels.update_positions([vehicle.position for vehicle in self.vehicles])  # Update positions after adding vehicles
         self.V2Vchannels = V2Vchannels(self.n_Veh, self.n_RB, velocities, communication_range)
         self.V2Ichannels = V2Ichannels(self.n_Veh, self.n_RB)
         self.renew_channels_fastfading()
@@ -709,7 +766,7 @@ class Environ:
 
         # Make sure V2V_power_dB_List is defined
         if not hasattr(self, 'V2V_power_dB_List'):
-            self.V2V_power_dB_List = [45,30,10]  # Example values, adjust as needed
+            self.V2V_power_dB_List = [36, 33, 23]  # Example values, adjust as needed
 if __name__ == "__main__":
     # up_lanes = [3.5/2,3.5/2 + 3.5,250+3.5/2, 250+3.5+3.5/2, 500+3.5/2, 500+3.5+3.5/2]
     # down_lanes = [250-3.5-3.5/2,250-3.5/2,500-3.5-3.5/2,500-3.5/2,750-3.5-3.5/2,750-3.5/2]

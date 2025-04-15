@@ -32,12 +32,12 @@ class Agent(BaseModel):
         self.action_all_with_power = np.zeros([self.num_vehicle, 3, 2],dtype = 'int32')   # this is actions that taken by V2V links with power
         self.action_all_with_power_training = np.zeros([20, 3, 2],dtype = 'int32')   # this is actions that taken by V2V links with power
         self.reward = []
-        self.learning_rate = 0.01
+        self.learning_rate = 0.04
         self.learning_rate_minimum = 0.0001
         self.learning_rate_decay = 0.96
         self.learning_rate_decay_step = 500000
         self.target_q_update_step = 100
-        self.discount = 0.5
+        self.discount = 0.92
         self.double_q = True
         print("------------")
         print(self.double_q)
@@ -118,6 +118,18 @@ class Agent(BaseModel):
         else:          
             action =  self.q_action.eval({self.s_t:[s_t]})[0] 
         return action
+    
+    # def predict(self, s_t, step, test_ep=False):
+    #     # ==========================
+    #     #  Select actions
+    #     # ======================
+    #     ep = 1 / (step / 1000000 + 1)  # Epsilon decay
+    #     if random.random() < ep and not test_ep:  # Epsilon-greedy exploration
+    #         action = np.random.randint(self.RB_number * 3)  # Random action across all resource blocks
+    #     else:
+    #         action = self.q_action.eval({self.s_t: [s_t]})[0]
+    #     return action
+
     def observe(self, prestate, state, reward, action):
         # -----------
         # Collect Data for Training 
@@ -225,21 +237,51 @@ class Agent(BaseModel):
                 #print('Test Reward is ', np.mean(test_result))
                 print(state_old , self.step )  
 
+        # # Plot the collected data after all steps
+        # plt.figure(figsize=(10, 8))#6
+        # plt.plot(time_steps, v2i_rates_over_time, label='Average Reward', color='blue', linestyle='-')
+        # plt.xlabel('Time Step')
+        # plt.ylabel('Average Reward')
+        # plt.title('Average Reward vs. Time Step')
+        # plt.grid(True, linestyle='--', alpha=0.7)
+        # plt.legend()
+        # plt.tight_layout()
+        # plt.savefig('reward_vs_time_step_all.png', dpi=300)
+        # plt.close()
+        
+        # # After training, plot and save the graphs
+        # # self.plot_v2i_rate_vs_time(v2i_rates_over_time, time_steps)
+        # self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=8000, interval=500)
+
         # Plot the collected data after all steps
-        plt.figure(figsize=(10, 6))
-        plt.plot(time_steps, v2i_rates_over_time, label='Average Reward', color='blue', linestyle='-')
+        plt.figure(figsize=(10, 8))  # 6
+
+        # Calculate mean average reward for every 1000 steps
+        interval = 1000
+        num_intervals = len(v2i_rates_over_time) // interval
+        mean_v2i_rates = []
+
+        for i in range(num_intervals):
+            start_index = i * interval
+            end_index = start_index + interval
+            mean_v2i_rates.append(np.mean(v2i_rates_over_time[start_index:end_index]))
+
+        # Create an x-axis for the mean values
+        x_values = np.arange(num_intervals) * interval + (interval / 2)  # Midpoint of each interval
+
+        plt.plot(x_values, mean_v2i_rates, label='Average Reward', color='blue', linestyle='-')
         plt.xlabel('Time Step')
         plt.ylabel('Average Reward')
-        plt.title('Average Reward vs. Time Step')
+        plt.title('Average Reward vs. Time Step (1000-step intervals)')
         plt.grid(True, linestyle='--', alpha=0.7)
+        plt.ylim(0.3,0.5)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('reward_vs_time_step_all.png', dpi=300)
+        plt.savefig('reward_vs_time_step_all_0.04.png', dpi=300)
         plt.close()
         
         # After training, plot and save the graphs
-        # self.plot_v2i_rate_vs_time(v2i_rates_over_time, time_steps)
-        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=8000, interval=500)
+        self.plot_raw_v2i_rate_vs_time(self.raw_v2i_rates_over_time, num_steps=8000, interval=1000)
                   
     def q_learning_mini_batch(self):
 
@@ -361,7 +403,7 @@ class Agent(BaseModel):
         else:
             return self.env.vehicles  # Return all vehicles if size exceeds the number of vehicles
     def plot_power_vs_platoon_size(self):
-        plt.figure(figsize=(12, 8))
+        plt.figure(figsize=(10, 8))#12,8
         self.env.platoon_sizes = [2, 4, 5, 8, 10, 20]
 
         markers = ['o', 's', 'D', '^', 'v']  # Using a variety of markers
@@ -394,10 +436,10 @@ class Agent(BaseModel):
         plt.legend(fontsize=12)  # Larger legend for better readability
         plt.grid(True, linestyle='--', alpha=0.7)  # Adding dashed gridlines with some transparency
         plt.tight_layout()  # Ensuring that the layout fits well in the figure
-        plt.savefig('power_vs_platoon_size40(45,30,10).png', dpi=300)
+        plt.savefig('power_vs_platoon_size_40.png', dpi=300)
 
     def plot_raw_v2i_rate_vs_time(self, raw_v2i_rates, num_steps=None, interval=500):
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(10, 8))#10,6
 
         # If num_steps is specified, slice the raw_v2i_rates
         if num_steps is not None:
@@ -501,15 +543,15 @@ class Agent(BaseModel):
             p_1 = number_1 / (number_0 + number_1 + number_2)
             p_2 = number_2 / (number_0 + number_1 + number_2)
             plt.figure()
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Power Level 45 db')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Power Level 30 db')
-            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Power Level 10 db')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_0, 'b*-', label='Long Range Communication')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_1, 'rs-', label='Medium Range Communication')
+            plt.plot(bin_edges[:-1]*0.1 + 0.01, p_2, 'go-', label='Short Range Communication')
             # plt.xlim([0,0.12])
             plt.xlabel("Time left for V2V transmission (s)")
             plt.ylabel("Probability of power selection")
             plt.legend()
             plt.grid()
-            plt.savefig('deepqnetwork(45,30,10).png', dpi=300)
+            plt.savefig('deepqnetwork_40.png', dpi=300)
             
             V2I_Rate_list[game_idx] = np.mean(np.asarray(Rate_list))
             Fail_percent_list[game_idx] = percent
@@ -527,9 +569,10 @@ class Agent(BaseModel):
         self.plot_resource_block_utilization()
         self.plot_v2i_rate_distribution(V2I_Rate_list)
         self.plot_failure_probability(Fail_percent_list)
+        self.plot_success_rate(Fail_percent_list)
 
     def plot_power_vs_vehicle_count(self, vehicle_counts):
-        plt.figure(figsize=(12, 8))
+        plt.figure(figsize=(10, 8))
         
         # Initialize the power selection probabilities list
         self.power_probs_vehicle_count = []
@@ -564,7 +607,7 @@ class Agent(BaseModel):
         plt.legend(fontsize=12)  # Larger legend for better readability
         plt.grid(True, linestyle='--', alpha=0.7)  # Adding dashed gridlines with some transparency
         plt.tight_layout()  # Ensuring that the layout fits well in the figure
-        plt.savefig('power_vs_vehicle_count(45,30,10).png', dpi=300)  # Save the plot
+        plt.savefig('power_vs_vehicle_count.png', dpi=300)  # Save the plot
 
     def initialize_action_arrays(self):
         self.action_all_with_power = np.zeros([self.num_vehicle, 3, 2], dtype='int32')
@@ -588,45 +631,72 @@ class Agent(BaseModel):
                 resource_block_usage = resource_block_usage[:self.RB_number]
         
         # Plotting
-        plt.figure()
+        plt.figure(figsize=(10, 8))
         plt.bar(range(self.RB_number), resource_block_usage, color='purple', alpha=0.6)
         plt.xlabel("Resource Block Index")
         plt.ylabel("Usage Count")
         plt.title("Resource Block Utilization")
         plt.grid()
-        plt.savefig("resource_block_utilization.png", dpi=300)
+        plt.savefig("resource_block_utilization_40.png", dpi=300)
         print("Saved plot: resource_block_utilization.png")
 
     def plot_v2i_rate_distribution(self, V2I_Rate_list):
-        plt.figure()
+        plt.figure(figsize=(10, 8))
         plt.hist(V2I_Rate_list, bins=20, color='blue', alpha=0.7)
         plt.xlabel("V2V Rate (Mbps)")
         plt.ylabel("Frequency")
         plt.title("Distribution of V2V Rates")
         plt.grid()
-        plt.savefig("V2V_rate_distribution.png", dpi=300)
+        plt.savefig("V2V_rate_distribution_0.82.png", dpi=300)
         print("Saved plot: V2V_rate_distribution.png")
 
     def plot_failure_probability(self, Fail_percent_list):
-        plt.figure()
+        plt.figure(figsize=(10, 8))
         plt.plot(range(len(Fail_percent_list)), Fail_percent_list, marker='o')
         plt.xlabel("Game Index")
         plt.ylabel("Failure Probability")
-        plt.ylim(0, 0.050)
+        plt.ylim(0, 1.0)
         plt.title("Failure Probability Over Games")
         plt.grid()
-        plt.savefig("failure_probability_over_games.png", dpi=300)
+        plt.savefig("failure_probability_over_games_40.png", dpi=300)
         print("Saved plot: failure_probability_over_games.png")
 
+    def plot_success_rate(self, Fail_percent_list):
+        plt.figure(figsize=(10, 8))
+        success_rates = 1 - np.array(Fail_percent_list)
+        plt.plot(range(len(success_rates)), success_rates, marker='o', color='green')
+        plt.xlabel("Game Index")
+        plt.ylabel("Success Rate")
+        plt.ylim(0, 1.0)
+        plt.title("Success Rate Over Games")
+        plt.grid()
+        plt.savefig("success_rate_over_games_for_36,33,23.png", dpi=300)
+        print("Saved plot: success_rate_over_games.png")
+
     def plot_interference_heatmap(self):
-        plt.figure()
+        plt.figure(figsize=(10,8))
         plt.imshow(self.env.V2V_Interference, cmap='hot', interpolation='nearest')
         plt.colorbar(label="Interference (dBm)")
         plt.xlabel("Resource Blocks")
         plt.ylabel("Vehicles")
         plt.title("Interference Heatmap")
-        plt.savefig("interference_heatmap.png", dpi=300)
+        plt.savefig("interference_heatmap_40.png", dpi=300)
         print("Saved plot: interference_heatmap.png")
+
+    # def plot_interference_heatmap(self):
+    #     plt.figure(figsize=(10, 8))  # Adjust figure size
+
+    #     # Create a heatmap using seaborn
+    #     sns.heatmap(self.env.V2V_Interference, annot=True, fmt=".2f", cmap="YlOrRd",
+    #                 linewidths=0.5, linecolor='gray', square=True, cbar_kws={'label': 'Interference (dBm)'})
+
+    #     plt.xlabel("Resource Blocks")
+    #     plt.ylabel("Vehicles")
+    #     plt.title("Interference Heatmap")
+
+    #     # Save the figure
+    #     plt.savefig("interference_heatmap.png", dpi=300)
+    #     print("Saved plot: interference_heatmap.png")
 
 def main(_):
  
