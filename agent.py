@@ -32,7 +32,7 @@ class Agent(BaseModel):
         self.action_all_with_power = np.zeros([self.num_vehicle, 3, 2],dtype = 'int32')   # this is actions that taken by V2V links with power
         self.action_all_with_power_training = np.zeros([20, 3, 2],dtype = 'int32')   # this is actions that taken by V2V links with power
         self.reward = []
-        self.learning_rate = 0.04
+        self.learning_rate = 0.01
         self.learning_rate_minimum = 0.0001
         self.learning_rate_decay = 0.96
         self.learning_rate_decay_step = 500000
@@ -260,24 +260,27 @@ class Agent(BaseModel):
         interval = 1000
         num_intervals = len(v2i_rates_over_time) // interval
         mean_v2i_rates = []
+        std_v2i_rates = []
 
         for i in range(num_intervals):
             start_index = i * interval
             end_index = start_index + interval
-            mean_v2i_rates.append(np.mean(v2i_rates_over_time[start_index:end_index]))
+            interval_data = v2i_rates_over_time[start_index:end_index]
+            mean_v2i_rates.append(np.mean(interval_data))
+            std_v2i_rates.append(np.std(interval_data))
 
         # Create an x-axis for the mean values
         x_values = np.arange(num_intervals) * interval + (interval / 2)  # Midpoint of each interval
 
-        plt.plot(x_values, mean_v2i_rates, label='Average Reward', color='blue', linestyle='-')
+        plt.errorbar(x_values, mean_v2i_rates, yerr=std_v2i_rates, label='Reward Mean ± Std Dev', color='blue', linestyle='-', capsize=5)
         plt.xlabel('Time Step')
-        plt.ylabel('Average Reward')
-        plt.title('Average Reward vs. Time Step (1000-step intervals)')
+        plt.ylabel('Reward')
+        plt.title('Reward Mean and Std Deviation vs. Time Step (1000-step intervals)')
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.ylim(0.3,0.5)
+        plt.ylim(0, 1)
         plt.legend()
         plt.tight_layout()
-        plt.savefig('reward_vs_time_step_all_0.04.png', dpi=300)
+        plt.savefig('reward_vs_time_step_all_0.01_errorbar.png', dpi=300)
         plt.close()
         
         # After training, plot and save the graphs
@@ -745,7 +748,3 @@ def main(_):
 
 if __name__ == '__main__':
     tf.app.run()
-        
-
-
-

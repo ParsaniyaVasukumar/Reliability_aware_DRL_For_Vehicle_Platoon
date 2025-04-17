@@ -4,10 +4,10 @@ from PIL import Image
 
 # Image paths (you can reorder these if needed)
 image_paths = [
-    "./image2/reward_vs_time_step_all_0.01.png",  
-    "./image2/reward_vs_time_step_all_0.02.png",  
-    "./image2/reward_vs_time_step_all_0.03.png",  
-    "./image2/reward_vs_time_step_all_0.04.png"   
+    "./image2/reward_vs_time_step_all_0.01_errorbar.png",  
+    "./image2/reward_vs_time_step_all_0.02_errorbar.png",  
+    "./image2/reward_vs_time_step_all_0.03_errorbar.png",  
+    "./image2/reward_vs_time_step_all_0.04_errorbar.png"   
 ]
 
 # Correct colors: Purple, Green, Blue, Orange (in reverse)
